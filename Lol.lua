@@ -172,18 +172,15 @@ RunService.RenderStepped:Connect(function()
         end
 
         local targetPos = rootPart.Position + Vector3.new(0, CONFIG.OffsetY, 0)
-        local camCF = Camera.CFrame
-        local camPos = camCF.Position
+        local camPos = Camera.CFrame.Position
 
-        local flat = Vector3.new(targetPos.X - camPos.X, 0, targetPos.Z - camPos.Z).Unit
-        local angle = math.atan2(flat.X, flat.Z)
+        -- Rotar cámara hacia el objetivo
+        local goalCF = CFrame.lookAt(camPos, targetPos)
+        Camera.CFrame = Camera.CFrame:Lerp(goalCF, CONFIG.LockSpeed)
 
-        local currentAngles = camCF - camCF.Position
-        local _, currentY, _ = camCF:ToEulerAnglesYXZ()
-        local newY = currentY + (angle - (-currentY)) * CONFIG.LockSpeed
-
-        local pitch = math.asin((targetPos.Y - camPos.Y) / (targetPos - camPos).Magnitude)
-        local newCF = CFrame.new(camPos) * CFrame.fromEulerAnglesYXZ(-pitch, -angle, 0)
-        Camera.CFrame = camCF:Lerp(newCF, CONFIG.LockSpeed)
+        -- Rotar el personaje hacia el objetivo en el eje Y solamente
+        local lookAt = Vector3.new(targetPos.X, myRoot.Position.Y, targetPos.Z)
+        local goalRoot = CFrame.lookAt(myRoot.Position, lookAt)
+        myRoot.CFrame = myRoot.CFrame:Lerp(goalRoot, CONFIG.LockSpeed)
     end
 end)
