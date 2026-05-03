@@ -1,34 +1,30 @@
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
+local player = game.Players.LocalPlayer
 local camera = workspace.CurrentCamera
+local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
 
-local RADIUS = 150
-local STRENGTH = 0.08
+local AIM_RADIUS = 100
+local AIM_STRENGTH = 0.1
 
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+if not userInputService.TouchEnabled then
+	return
+end
 
-if not isMobile then return end
-
-local function getNearestEnemy()
+local function getClosestTarget()
 	local closest = nil
-	local closestDist = RADIUS
-	local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+	local shortestDistance = AIM_RADIUS
 
-	for _, other in ipairs(Players:GetPlayers()) do
-		if other ~= player and other.Character then
-			local hrp = other.Character:FindFirstChild("HumanoidRootPart")
-			local hum = other.Character:FindFirstChild("Humanoid")
-			if hrp and hum and hum.Health > 0 then
-				local screen, visible = camera:WorldToScreenPoint(hrp.Position)
-				if visible then
-					local dist = (Vector2.new(screen.X, screen.Y) - center).Magnitude
-					if dist < closestDist then
-						closestDist = dist
-						closest = hrp
-					end
+	for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+		if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			local pos, onScreen = camera:WorldToViewportPoint(otherPlayer.Character.HumanoidRootPart.Position)
+
+			if onScreen then
+				local screenCenter = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
+				local distance = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+
+				if distance < shortestDistance then
+					shortestDistance = distance
+					closest = otherPlayer.Character.HumanoidRootPart
 				end
 			end
 		end
@@ -37,10 +33,13 @@ local function getNearestEnemy()
 	return closest
 end
 
-RunService.RenderStepped:Connect(function()
-	local target = getNearestEnemy()
+runService.RenderStepped:Connect(function()
+	local target = getClosestTarget()
+
 	if target then
-		local lookCFrame = CFrame.lookAt(camera.CFrame.Position, target.Position)
-		camera.CFrame = camera.CFrame:Lerp(lookCFrame, STRENGTH)
+		local direction = (target.Position - camera.CFrame.Position).Unit
+		local newLook = camera.CFrame.LookVector:Lerp(direction, AIM_STRENGTH)
+
+		camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + newLook)
 	end
 end)
